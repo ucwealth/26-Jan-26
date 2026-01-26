@@ -3,8 +3,9 @@ import requests
 from datetime import datetime
 import time
 
-FILE_PATH = "daily_log.txt"
-ERROR_LOG = "error_log.txt"
+BASE_DIR = os.path.dirname(__file__)
+FILE_PATH = os.path.join(BASE_DIR, "daily_log.txt")
+ERROR_LOG = os.path.join(BASE_DIR, "error_log.txt")
 
 def fetch_quote(retries=1, delay=5):
     url = "https://api.quotable.io/random"
@@ -25,13 +26,9 @@ def fetch_quote(retries=1, delay=5):
 quote = fetch_quote(retries=1)
 line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {quote}\n"
 
-if os.path.exists(FILE_PATH):
-    with open(FILE_PATH, "r") as f:
-        content = f.read()
-else:
-    content = ""
 
-with open(FILE_PATH, "w") as f:
-    f.write(content + line)
+with open(FILE_PATH, "a") as f:
+    f.write(line)
 
 print(f"Added line: {line.strip()}")
+
