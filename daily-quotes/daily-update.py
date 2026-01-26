@@ -6,6 +6,13 @@ import time
 BASE_DIR = os.path.dirname(__file__)
 FILE_PATH = os.path.join(BASE_DIR, "daily_log.txt")
 ERROR_LOG = os.path.join(BASE_DIR, "error_log.txt")
+RANDOM_TIME_FILE = os.path.join(BASE_DIR, ".random_time")
+
+if os.path.exists(RANDOM_TIME_FILE):
+    with open(RANDOM_TIME_FILE, "r") as f:
+        rand_time = f.read().strip()
+else:
+    rand_time = "Unknown"
 
 def fetch_quote(retries=1, delay=5):
     url = "https://api.quotable.io/random"
@@ -24,7 +31,7 @@ def fetch_quote(retries=1, delay=5):
                 return f"Could not fetch quote today: {e}"
 
 quote = fetch_quote(retries=1)
-line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {quote}\n"
+line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (random time: {rand_time}) - {quote}\n"
 
 
 with open(FILE_PATH, "a") as f:
