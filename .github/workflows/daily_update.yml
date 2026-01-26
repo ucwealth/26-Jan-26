@@ -25,6 +25,7 @@ jobs:
         run: pip install requests
 
       - name: Run daily update script at random time
+        working-directory: daily-quotes
         run: |
           TODAY_FILE=".last_run_date"
           RANDOM_FILE=".random_time"
