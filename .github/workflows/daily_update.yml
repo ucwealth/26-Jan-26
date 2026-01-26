@@ -48,7 +48,7 @@ jobs:
 
       - name: Run daily quote script
         working-directory: daily-quotes
-        run: python daily-update.py
+        run: python script.py
 
 
       - name: Commit changes
