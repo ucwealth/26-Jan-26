@@ -15,7 +15,7 @@ else:
     rand_time = "Unknown"
 
 def fetch_quote(retries=1, delay=5):
-    url = "https://api.quotable.io/random"
+    url = "http://api.quotable.io/random"
     for attempt in range(retries + 1):
         try:
             response = requests.get(url, timeout=10)
