@@ -7,6 +7,9 @@ const defineUser = require('./common/models/User');
 const User = defineUser(sequelize);
 sequelize.sync()
 
+const authRoutes = require('./auth/routes');
+app.use('/', authRoutes);
+
 app.get('/status', (req, res) => {
     res.json({
         status: 'Running',

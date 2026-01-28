@@ -11,4 +11,4 @@ const UserModel = {
     age: { type: DataTypes.INTEGER}
 };
 
-module.exports = (sequelize) => sequelize.afterDefine('user', UserModel);
+module.exports = (sequelize) => sequelize.define('user', UserModel);
