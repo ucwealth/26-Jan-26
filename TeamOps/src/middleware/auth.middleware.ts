@@ -21,7 +21,7 @@ export interface JWTPayload {
 }
 
 export interface AuthRequest extends Request {
-    user?: JWTPayload;
+    user?: JWTPayload | undefined;
     ip: string;
     userAgent: string;
 }
@@ -64,7 +64,14 @@ export class JWTService {
     private static readonly ACCESS_TOKEN_EXPIRY = '15m';
     private static readonly REFRESH_TOKEN_EXPIRY = '7d';
 
+    private static validateSecrets(): void {
+        if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+            throw new Error('JWT secrets are not configured');
+        }
+    }
+
     static generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
+        this.validateSecrets();
         return jwt.sign(payload, process.env.JWT_SECRET!, {
             expiresIn: this.ACCESS_TOKEN_EXPIRY,
             algorithm: 'HS256'
@@ -72,6 +79,7 @@ export class JWTService {
     }
 
     static generateRefreshToken(userId: string): string {
+        this.validateSecrets();
         return jwt.sign({ sub: userId}, process.env.JWT_REFRESH_SECRET!, {
             expiresIn: this.REFRESH_TOKEN_EXPIRY,
             algorithm: 'HS256',
@@ -80,6 +88,7 @@ export class JWTService {
     }
 
     static verifyAccessToken(token: string): JWTPayload | null {
+        this.validateSecrets();
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET!, { 
                 algorithms: ['HS256']
@@ -92,6 +101,7 @@ export class JWTService {
 
     static verifyRefreshToken(token: string): { sub: string, jti: string } | null {
         try {
+            this.validateSecrets();
             const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!, { 
                 algorithms: ['HS256']
             });
@@ -101,7 +111,31 @@ export class JWTService {
         }
     }
 
-    static extractToken() {
+    // extract token from authorization header
+    static extractToken(authHeader?: string): string | null {
+        if (!authHeader) return null;
+        const parts = authHeader.split(' ');
+        if (parts.length !== 2 || parts[0]!.toLowerCase() !== 'bearer') {
+            return null;
+        }
+        return parts[1] || null;
+    }
+}
 
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        // Handle cases where auth header might be an array
+        const headerValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        const token = JWTService.extractToken(headerValue);
+        if (!token) { // missing token to be handled by auth guards
+            req.user = undefined;
+            return next();
+        }
+
+        
+    } catch (error) {
+        console.error("");
+        next();
     }
 }
