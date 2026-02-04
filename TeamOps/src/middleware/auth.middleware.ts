@@ -61,5 +61,47 @@ export class PasswordService {
 }
 
 export class JWTService {
-    
+    private static readonly ACCESS_TOKEN_EXPIRY = '15m';
+    private static readonly REFRESH_TOKEN_EXPIRY = '7d';
+
+    static generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
+        return jwt.sign(payload, process.env.JWT_SECRET!, {
+            expiresIn: this.ACCESS_TOKEN_EXPIRY,
+            algorithm: 'HS256'
+        });
+    }
+
+    static generateRefreshToken(userId: string): string {
+        return jwt.sign({ sub: userId}, process.env.JWT_REFRESH_SECRET!, {
+            expiresIn: this.REFRESH_TOKEN_EXPIRY,
+            algorithm: 'HS256',
+            jti: uuidv4()
+        });
+    }
+
+    static verifyAccessToken(token: string): JWTPayload | null {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET!, { 
+                algorithms: ['HS256']
+            });
+            return decoded as JWTPayload;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    static verifyRefreshToken(token: string): { sub: string, jti: string } | null {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!, { 
+                algorithms: ['HS256']
+            });
+            return decoded as { sub: string, jti: string };  
+        } catch (error) {
+            return null;
+        }
+    }
+
+    static extractToken() {
+
+    }
 }
