@@ -2,8 +2,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 
-// Define Types/Interfaces
 
 export enum UserRole {
     ADMIN = 'ADMIN',
@@ -179,7 +180,152 @@ export const requireRole = (...roles: UserRole[]) => {
         };
 
         next();
+    };
+};
+
+// Requires permission: check roles_permission table
+export const requirePermission = (permission: string) => {
+    return async (req: AuthRequest, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            return res.status(401).json({
+                error: 'UNAUTHORIZED',
+                message: 'Authentication required'
+            });
+        };
+
+        const hasPermission = await checkUserPermission(req.user.id, permission);
+        if (!hasPermission) {
+            return res.status(301).json({
+                error: 'INSUFFICIENT_PERMISSION',
+                message: `Permission required: ${permission}`
+            });
+        };
+
+        next();
+    };
+};
+
+export const requireOwnerOrAdmin = (paramName: string = 'id') => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'Authentication required',
+      });
     }
+
+    const targetId = req.params[paramName];
+    const isOwner = req.user.id === targetId;
+    const isAdmin = req.user.role === UserRole.ADMIN;
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        error: 'INSUFFICIENT_PERMISSION',
+        message: 'Can only modify your own resource',
+      });
+    }
+
+    next();
+  };
+};
+
+// Check permissions in DB
+async function checkUserPermission(userId: string, permission: string): Promise<boolean> {
+    // implement with DB query
+    // const user = await User.findById(userId);
+  // const permissions = await RolePermissions.findAll({ role: user.role });
+  // return permissions.some(p => p.permission === permission);
+
+  return true;
 }
 
-export const requirePermission = () => {}
+// Input Validation
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password required'),
+});
+
+export const registerSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(12, 'Password must be at least 12 characters'),
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
+});
+
+export const refreshTokenSchema = z.object({
+  refresh_token: z.string().min(1, 'Refresh token required'),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+
+// Token Blacklist(For Logout)
+const tokenBlacklist = new Set<string>();
+
+export class TokenBlacklistService {
+  static blacklist(token: string): void {
+    tokenBlacklist.add(token);
+  }
+
+  static isBlacklisted(token: string): boolean {
+    return tokenBlacklist.has(token);
+  }
+
+  /**
+   * In production with Redis:
+   * await redis.setex(`blacklist:${token}`, expirySeconds, '1');
+   * return await redis.exists(`blacklist:${token}`);
+   */
+}
+
+export const checkTokenBlacklist = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const token = JWTService.extractToken(req.headers.authorization);
+
+  if (token && TokenBlacklistService.isBlacklisted(token)) {
+    return res.status(401).json({
+      error: 'UNAUTHORIZED',
+      message: 'Token has been revoked',
+    });
+  }
+
+  next();
+};
+
+
+// Rate Limiting
+
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts
+  keyGenerator: (req) => req.ip || 'unknown',
+  message: 'Too many login attempts, please try again later',
+  standardHeaders: true, // Return rate limit info in headers
+  skip: (req) => process.env.NODE_ENV === 'test', // Skip in tests
+});
+
+
+export const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // For API endpoints, 100 requests per 15 minutes per user
+  max: 100,
+  keyGenerator: (req: any) => (req as AuthRequest).user?.id || req.ip || 'unknown',
+  standardHeaders: true,
+  skip: (req) => process.env.NODE_ENV === 'test',
+});
+
+export default {
+  PasswordService,
+  JWTService,
+  authMiddleware,
+  requireAuth,
+  requireRole,
+  requirePermission,
+  requireOwnerOrAdmin,
+  loginLimiter,
+  apiLimiter,
+  TokenBlacklistService,
+  checkTokenBlacklist,
+  loginSchema,
+  registerSchema,
+  refreshTokenSchema,
+};
