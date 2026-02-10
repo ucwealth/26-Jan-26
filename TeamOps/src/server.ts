@@ -158,7 +158,7 @@ export const startServer = async () => {
     console.log('SIGTERM received, shutting down...');
     server.close(async () => {
       // await db.close();
-      console.log('✅ Server closed');
+      console.log('Server closed');
       process.exit(0);
     });
   });
@@ -167,7 +167,7 @@ export const startServer = async () => {
     console.log('SIGINT received, shutting down...');
     server.close(async () => {
       // await db.close();
-      console.log('✅ Server closed');
+      console.log('Server closed');
       process.exit(0);
     });
   });
