@@ -26,10 +26,13 @@ jobs:
 
       - name: Generate random time
         run: |
-          HOUR=$((RANDOM % 8 + 8)) 
+          HOUR=$((RANDOM % 4 + 8)) # 8,9,10,11
           MINUTE=$((RANDOM % 60))
           echo "$HOUR $MINUTE" > daily-quotes/.random_time
           echo "Random execution time: $HOUR:$MINUTE UTC"
+          
+          echo "$(date -u '+%Y-%m-%d %H:%M:%S') - Scheduled run at $HOUR:$MINUTE UTC" >> daily-quotes/daily_log.txt
+
 
       - name: Wait until random time (8-15 UTC)
         run: |
