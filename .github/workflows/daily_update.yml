@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: dev
           persist-credentials: true
 
       - uses: actions/setup-python@v4
