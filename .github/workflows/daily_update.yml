@@ -3,7 +3,7 @@ name: Daily Quote Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *' 
+    - cron: '20 8 * * *' 
 
 permissions:
   contents: write
@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: dev
           persist-credentials: true
 
       - uses: actions/setup-python@v4
@@ -24,30 +25,10 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Generate random time
+      - name: Log scheduled run time
         run: |
-          HOUR=$((RANDOM % 4 + 8)) # 8,9,10,11
-          MINUTE=$((RANDOM % 60))
-          echo "$HOUR $MINUTE" > daily-quotes/.random_time
-          echo "Random execution time: $HOUR:$MINUTE UTC"
-          
-          echo "$(date -u '+%Y-%m-%d %H:%M:%S') - Scheduled run at $HOUR:$MINUTE UTC" >> daily-quotes/daily_log.txt
+          echo "$(date -u '+%Y-%m-%d %H:%M:%S') - Running scheduled 09:20 UTC job" >> daily-quotes/daily_log.txt
 
-
-      - name: Wait until random time (8-15 UTC)
-        run: |
-          read HOUR MINUTE < daily-quotes/.random_time
-          NOW_H=$(date -u +%H)
-          NOW_M=$(date -u +%M)
-          NOW_S=$((NOW_H*3600 + NOW_M*60))
-          TARGET_S=$((HOUR*3600 + MINUTE*60))
-          SLEEP_S=$((TARGET_S - NOW_S))
-          if [ $SLEEP_S -gt 0 ]; then
-            echo "Sleeping $SLEEP_S seconds until $HOUR:$MINUTE UTC..."
-            sleep $SLEEP_S
-          else
-            echo "Random time already passed, running immediately."
-          fi
 
       - name: Run daily quote script
         working-directory: daily-quotes
