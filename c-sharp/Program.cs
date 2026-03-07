@@ -13,7 +13,7 @@ namespace HelloWorld
             Console.WriteLine(myPerson.Name);  
 
             // files
-            myPerson.filemon();
+            myPerson.filemon
 
             Pig myPig = new Pig();
             myPig.animalSound();
